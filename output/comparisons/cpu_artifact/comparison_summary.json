@@ -1,0 +1,142 @@
+{
+  "mode": "artifact-only",
+  "warnings": [],
+  "selected_sensor_idx": 0,
+  "runs": [
+    {
+      "label": "stgcn",
+      "run_dir": "output/experiments/smoke_stgcn_cpu/stgcn",
+      "model_name": "stgcn",
+      "best_epoch": 17,
+      "best_val_score": 2.9056398418171234,
+      "avg_mae": 2.9429743624499984,
+      "avg_rmse": 5.521647671997267,
+      "avg_mape": 0.07413604804285245,
+      "horizon_metrics": {
+        "MAPE": {
+          "step_1": 0.05339087992093042,
+          "step_2": 0.07677874724276712,
+          "step_3": 0.09223851696485984
+        },
+        "MAE": {
+          "step_1": 2.2347994010565952,
+          "step_2": 3.036430932914139,
+          "step_3": 3.55769275337926
+        },
+        "RMSE": {
+          "step_1": 4.077106824214346,
+          "step_2": 5.737931822621014,
+          "step_3": 6.749904369156442
+        }
+      }
+    },
+    {
+      "label": "gat",
+      "run_dir": "output/experiments/smoke_gat_cpu/gat",
+      "model_name": "gat",
+      "best_epoch": 19,
+      "best_val_score": 3.246191206191154,
+      "avg_mae": 3.2680146000243124,
+      "avg_rmse": 6.136987100207051,
+      "avg_mape": 0.07813284944143337,
+      "horizon_metrics": {
+        "MAPE": {
+          "step_1": 0.05428218057418935,
+          "step_2": 0.07984164199144092,
+          "step_3": 0.10027472575866983
+        },
+        "MAE": {
+          "step_1": 2.3487085592319707,
+          "step_2": 3.333561333765456,
+          "step_3": 4.121773907075511
+        },
+        "RMSE": {
+          "step_1": 4.299328710638753,
+          "step_2": 6.307868034645294,
+          "step_3": 7.803764555337106
+        }
+      }
+    },
+    {
+      "label": "graphsage",
+      "run_dir": "output/experiments/smoke_sage_cpu/graphsage",
+      "model_name": "graphsage",
+      "best_epoch": 20,
+      "best_val_score": 3.2189523220601592,
+      "avg_mae": 3.236370020593354,
+      "avg_rmse": 6.013801670391531,
+      "avg_mape": 0.0837242938517182,
+      "horizon_metrics": {
+        "MAPE": {
+          "step_1": 0.057021214048442265,
+          "step_2": 0.08573624991106582,
+          "step_3": 0.1084154175956465
+        },
+        "MAE": {
+          "step_1": 2.3487493698751907,
+          "step_2": 3.3105987001266772,
+          "step_3": 4.049761991778196
+        },
+        "RMSE": {
+          "step_1": 4.2760324930408915,
+          "step_2": 6.202606224400255,
+          "step_3": 7.562766293733446
+        }
+      }
+    },
+    {
+      "label": "temporal_mlp",
+      "run_dir": "output/experiments/smoke_mlp_cpu/temporal_mlp",
+      "model_name": "temporal_mlp",
+      "best_epoch": 8,
+      "best_val_score": 3.296741784067789,
+      "avg_mae": 3.3052136030200754,
+      "avg_rmse": 6.253731045867073,
+      "avg_mape": 0.07965285740772286,
+      "horizon_metrics": {
+        "MAPE": {
+          "step_1": 0.05521168856621241,
+          "step_2": 0.0813635931280263,
+          "step_3": 0.10238329052892986
+        },
+        "MAE": {
+          "step_1": 2.378129927744593,
+          "step_2": 3.3771351091522317,
+          "step_3": 4.160375772163402
+        },
+        "RMSE": {
+          "step_1": 4.415807778944576,
+          "step_2": 6.4406352174621295,
+          "step_3": 7.904750141194512
+        }
+      }
+    },
+    {
+      "label": "lstm",
+      "run_dir": "output/experiments/smoke_lstm_cpu/lstm",
+      "model_name": "lstm",
+      "best_epoch": 8,
+      "best_val_score": 3.318576856686423,
+      "avg_mae": 3.324441432386339,
+      "avg_rmse": 6.228954418878421,
+      "avg_mape": 0.08028940368765765,
+      "horizon_metrics": {
+        "MAPE": {
+          "step_1": 0.055115351454389554,
+          "step_2": 0.08184964493293582,
+          "step_3": 0.10390321467564756
+        },
+        "MAE": {
+          "step_1": 2.3867944235476255,
+          "step_2": 3.3962366211579873,
+          "step_3": 4.1902932524534044
+        },
+        "RMSE": {
+          "step_1": 4.425503790263596,
+          "step_2": 6.428057885633908,
+          "step_3": 7.833301580737758
+        }
+      }
+    }
+  ]
+}
