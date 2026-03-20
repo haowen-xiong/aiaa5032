@@ -52,12 +52,18 @@ The framework STGCN consists of two spatio-temporal convolutional blocks (ST-Con
 
 ## Requirements
 Our code is based on Python3 (>= 3.6). There are a few dependencies to run the code. The major libraries are listed as follows:
-* TensorFlow (>= 1.9.0)
+* PyTorch
 * NumPy (>= 1.15)
 * SciPy (>= 1.1.0)
 * Pandas (>= 0.23)
 
-The implementation of Spatio-Temporal Graph Convolutional Layer with PyTorch is available in [PyG Temporal](https://github.com/benedekrozemberczki/pytorch_geometric_temporal/blob/master/torch_geometric_temporal/nn/attention/stgcn.py). You might refer to [STConv](https://pytorch-geometric-temporal.readthedocs.io/en/latest/modules/root.html#temporal-graph-attention-layers) that supports ChebConv Graph Convolutions.
+This repository now uses a native PyTorch implementation while preserving the original STGCN data flow, Chebyshev graph convolution, and autoregressive multi-step inference scheme.
+
+You can install the runtime dependencies with:
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Dataset
 ### Data Source
@@ -87,39 +93,57 @@ python main.py --n_route {`$num_route`} --graph {`$weight_matrix_file`}
 
 **Default settings**:  
 * Training configs: argparse is used for passing parameters. 
-    * n_route=228, graph='default', ks=3, kt=3, n_his=12, n_pred=9 
-    * batch_size=50, epoch=50, lr=0.001, opt='RMSProp', inf_mode='merge', save=10
-* Data source will be searched in dataset_dir = './dataset', including speed records and the weight matrix.
-* Trained models will be saved in save_path = './output/models' every `args.save=10` epochs.
-* Training logs will be saved in sum_path = './output/tensorboard'.  
+    * `model_name='stgcn'`, `exp_name='group_work'`, `output_dir='./output/experiments'`
+    * `n_route=228`, `graph='default'`, `graph_approx='cheb'`, `ks=3`, `kt=3`, `n_his=12`, `n_pred=9`
+    * `batch_size=50`, `epoch=50`, `lr=0.001`, `opt='RMSProp'`, `inf_mode='merge'`, `save=10`, `drop_prob=0.0`, `seed=42`
+* Data source will be searched in `dataset_dir = './dataset'`. Both `./dataset/PeMSD7_*.csv` and `./dataset/PeMSD7_Full/PeMSD7_*.csv` are supported.
+* Per-model outputs are written under `output/experiments/<exp_name>/<model_name>/`.
+* Training logs are stored in the per-model directory, and TensorBoard data goes to the nested `tensorboard/` folder when available.  
+
+Example:
+
+```bash
+python main.py --model_name stgcn --exp_name baseline --n_route 228 --epoch 50 --batch_size 16 --device cuda
+```
+
+Fast smoke test:
+
+```bash
+python main.py --model_name stgcn --exp_name smoke --n_route 228 --epoch 1 --batch_size 8 --device cpu
+```
+
+Useful outputs after each run:
+
+* `output/experiments/<exp_name>/<model_name>/latest.pt`: latest checkpoint
+* `output/experiments/<exp_name>/<model_name>/best.pt`: best checkpoint selected by validation metrics
+* `output/experiments/<exp_name>/<model_name>/train.log`: training log
+* `output/experiments/<exp_name>/<model_name>/test.log`: test log
+* `output/experiments/<exp_name>/<model_name>/history.json`: epoch-wise metrics
+* `output/experiments/<exp_name>/<model_name>/test_results.json`: final test metrics
+* `output/experiments/<exp_name>/<model_name>/run_meta.json`: run configuration and dataset sizes
+* `output/experiments/<exp_name>/<model_name>/best_meta.json`: best epoch and aggregated validation score
+* `output/experiments/<exp_name>/<model_name>/experiment_manifest.json`: experiment summary and output paths
 
 Note: it normally takes around 6s on a NVIDIA TITAN Xp for one epoch with the batch size of 50 and n_route of 228.
 
 ### Folder structure
-```
-├── data_loader
-│   ├── data_utils.py
-│   └── __init__.py
-├── dataset
-│   ├── PeMSD7_V_228.csv
-│   ├── PeMSD7_W_228.csv
-│   ├── PeMSD7_V_1026.csv
-│   └── PeMSD7_W_1026.csv
-├── main.py
-├── models
-│   ├── base_model.py
-│   ├── __init__.py
-│   ├── layers.py
-│   ├── tester.py
-│   └── trainer.py
-├── output
-│   ├── models
-│   └── tensorboard
-├── README.md
-└── utils
-    ├── __init__.py
-    ├── math_graph.py
-    └── math_utils.py
+```text
+.
+|-- data_loader/
+|-- dataset/
+|-- engine/
+|-- models/
+|   |-- baselines/
+|   `-- stgcn/
+|-- output/
+|   |-- experiments/
+|   `-- visualizations/
+|-- scripts/
+|-- utils/
+|-- group_project_plan.md
+|-- main.py
+|-- requirements.txt
+`-- README.md
 ```
 
 ## Updates

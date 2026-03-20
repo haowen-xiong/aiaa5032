@@ -16,6 +16,7 @@ def scaled_laplacian(W):
     :param W: np.ndarray, [n_route, n_route], weighted adjacency matrix of G.
     :return: np.matrix, [n_route, n_route].
     '''
+    W = np.asarray(W, dtype=np.float64)
     # d ->  diagonal degree matrix
     n, d = np.shape(W)[0], np.sum(W, axis=1)
     # L -> graph Laplacian
@@ -27,7 +28,7 @@ def scaled_laplacian(W):
                 L[i, j] = L[i, j] / np.sqrt(d[i] * d[j])
     # lambda_max \approx 2.0, the largest eigenvalues of L.
     lambda_max = eigs(L, k=1, which='LR')[0][0].real
-    return np.mat(2 * L / lambda_max - np.identity(n))
+    return 2 * L / lambda_max - np.identity(n)
 
 
 def cheb_poly_approx(L, Ks, n):
@@ -38,14 +39,15 @@ def cheb_poly_approx(L, Ks, n):
     :param n: int, number of routes / size of graph.
     :return: np.ndarray, [n_route, Ks*n_route].
     '''
-    L0, L1 = np.mat(np.identity(n)), np.mat(np.copy(L))
+    L = np.asarray(L, dtype=np.float64)
+    L0, L1 = np.identity(n), np.copy(L)
 
     if Ks > 1:
         L_list = [np.copy(L0), np.copy(L1)]
         for i in range(Ks - 2):
-            Ln = np.mat(2 * L * L1 - L0)
+            Ln = 2 * L @ L1 - L0
             L_list.append(np.copy(Ln))
-            L0, L1 = np.matrix(np.copy(L1)), np.matrix(np.copy(Ln))
+            L0, L1 = np.copy(L1), np.copy(Ln)
         # L_lsit [Ks, n*n], Lk [n, Ks*n]
         return np.concatenate(L_list, axis=-1)
     elif Ks == 1:
@@ -61,11 +63,12 @@ def first_approx(W, n):
     :param n: int, number of routes / size of graph.
     :return: np.ndarray, [n_route, n_route].
     '''
+    W = np.asarray(W, dtype=np.float64)
     A = W + np.identity(n)
     d = np.sum(A, axis=1)
-    sinvD = np.sqrt(np.mat(np.diag(d)).I)
+    sinvD = np.sqrt(np.linalg.inv(np.diag(d)))
     # refer to Eq.5
-    return np.mat(np.identity(n) + sinvD * A * sinvD)
+    return np.identity(n) + sinvD @ A @ sinvD
 
 
 def weight_matrix(file_path, sigma2=0.1, epsilon=0.5, scaling=True):

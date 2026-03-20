@@ -1,57 +1,78 @@
-# @Time     : Jan. 12, 2019 19:01
-# @Author   : Veritas YIN
-# @FileName : base_model.py
-# @Version  : 1.0
-# @IDE      : PyCharm
-# @Github   : https://github.com/VeritasYin/Project_Orion
+from pathlib import Path
 
-from models.layers import *
-from os.path import join as pjoin
-import tensorflow as tf
+import torch
+import torch.nn as nn
+
+from models.layers import OutputLayer, STConvBlock
 
 
-def build_model(inputs, n_his, Ks, Kt, blocks, keep_prob):
-    '''
-    Build the base model.
-    :param inputs: placeholder.
-    :param n_his: int, size of historical records for training.
-    :param Ks: int, kernel size of spatial convolution.
-    :param Kt: int, kernel size of temporal convolution.
-    :param blocks: list, channel configs of st_conv blocks.
-    :param keep_prob: placeholder.
-    '''
-    x = inputs[:, 0:n_his, :, :]
+class STGCN(nn.Module):
+    def __init__(self, n_his, Ks, Kt, blocks, n_route, graph_kernel, drop_prob=0.0):
+        super().__init__()
+        self.n_his = n_his
+        self.blocks = nn.ModuleList(
+            [
+                STConvBlock(Ks, Kt, channels, n_route, graph_kernel, drop_prob=drop_prob, act_func="GLU")
+                for channels in blocks
+            ]
+        )
 
-    # Ko>0: kernel size of temporal convolution in the output layer.
-    Ko = n_his
-    # ST-Block
-    for i, channels in enumerate(blocks):
-        x = st_conv_block(x, Ks, Kt, channels, i, keep_prob, act_func='GLU')
-        Ko -= 2 * (Kt - 1)
+        Ko = n_his
+        for _ in blocks:
+            Ko -= 2 * (Kt - 1)
+        if Ko <= 1:
+            raise ValueError(f'ERROR: kernel size Ko must be greater than 1, but received "{Ko}".')
+        self.output = OutputLayer(Ko, n_route, blocks[-1][-1], act_func="GLU")
 
-    # Output Layer
-    if Ko > 1:
-        y = output_layer(x, Ko, 'output_layer')
-    else:
-        raise ValueError(f'ERROR: kernel size Ko must be greater than 1, but received "{Ko}".')
-
-    tf.add_to_collection(name='copy_loss',
-                         value=tf.nn.l2_loss(inputs[:, n_his - 1:n_his, :, :] - inputs[:, n_his:n_his + 1, :, :]))
-    train_loss = tf.nn.l2_loss(y - inputs[:, n_his:n_his + 1, :, :])
-    single_pred = y[:, 0, :, :]
-    tf.add_to_collection(name='y_pred', value=single_pred)
-    return train_loss, single_pred
+    def forward(self, inputs):
+        x = inputs[:, 0:self.n_his, :, :]
+        for block in self.blocks:
+            x = block(x)
+        y = self.output(x)
+        return y[:, 0, :, :]
 
 
-def model_save(sess, global_steps, model_name, save_path='./output/models/'):
-    '''
-    Save the checkpoint of trained model.
-    :param sess: tf.Session().
-    :param global_steps: tensor, record the global step of training in epochs.
-    :param model_name: str, the name of saved model.
-    :param save_path: str, the path of saved model.
-    :return:
-    '''
-    saver = tf.train.Saver(max_to_keep=3)
-    prefix_path = saver.save(sess, pjoin(save_path, model_name), global_step=global_steps)
-    print(f'<< Saving model to {prefix_path} ...')
+def build_model(args, blocks, graph_kernel, device):
+    graph_kernel = torch.as_tensor(graph_kernel, dtype=torch.float32, device=device)
+    return STGCN(
+        n_his=args.n_his,
+        Ks=args.ks,
+        Kt=args.kt,
+        blocks=blocks,
+        n_route=args.n_route,
+        graph_kernel=graph_kernel,
+        drop_prob=args.drop_prob,
+    ).to(device)
+
+
+def model_save(model, optimizer, epoch, args, save_path="./output/models"):
+    save_dir = Path(save_path)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    payload = {
+        "epoch": epoch,
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "args": vars(args),
+    }
+    latest_path = save_dir / "STGCN_latest.pt"
+    epoch_path = save_dir / f"STGCN_epoch_{epoch}.pt"
+    torch.save(payload, latest_path)
+    torch.save(payload, epoch_path)
+    print(f"<< Saving model to {epoch_path} ...")
+
+
+def model_save_best(model, optimizer, epoch, args, best_metric, save_path="./output/models"):
+    save_dir = Path(save_path)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    payload = {
+        "epoch": epoch,
+        "best_metric": best_metric,
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "args": vars(args),
+    }
+    best_path = save_dir / "STGCN_best.pt"
+    torch.save(payload, best_path)
+    print(f"<< Saving best model to {best_path} ...")

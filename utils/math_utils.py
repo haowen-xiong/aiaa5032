@@ -9,7 +9,7 @@ import numpy as np
 
 
 def z_score(x, mean, std):
-    '''
+    r'''
     Z-score normalization function: $z = (X - \mu) / \sigma $,
     where z is the z-score, X is the value of the element,
     $\mu$ is the population mean, and $\sigma$ is the standard deviation.
@@ -22,7 +22,7 @@ def z_score(x, mean, std):
 
 
 def z_inverse(x, mean, std):
-    '''
+    r'''
     The inverse of function z_score().
     :param x: np.ndarray, input to be recovered.
     :param mean: float, the value of mean.
