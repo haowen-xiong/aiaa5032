@@ -16,27 +16,29 @@ pip install -r requirements.txt
 
 ### STGCN
 ```bash
-python main.py --model_name stgcn --exp_name smoke_stgcn_cpu --n_route 228 --epoch 1 --batch_size 8 --device cpu
+CUDA_VISIBLE_DEVICES=0 python main.py --model_name stgcn --exp_name smoke_stgcn_cpu --n_route 228 --epoch 20 --batch_size 8 
+--device cpu
 ```
 
 ### GAT
 ```bash
-python main.py --model_name gat --exp_name smoke_gat_cpu --n_route 228 --epoch 1 --batch_size 8 --device cpu
+CUDA_VISIBLE_DEVICES=0 python main.py --model_name gat --exp_name smoke_gat_cpu --n_route 228 --epoch 20 --batch_size 8 
+--device cpu
 ```
 
 ### GraphSAGE
 ```bash
-python main.py --model_name graphsage --exp_name smoke_sage_cpu --n_route 228 --epoch 1 --batch_size 8 --device cpu
+CUDA_VISIBLE_DEVICES=0 python main.py --model_name graphsage --exp_name smoke_sage_cpu --n_route 228 --epoch 20 --batch_size 8 --device cpu
 ```
 
 ### Temporal MLP
 ```bash
-python main.py --model_name temporal_mlp --exp_name smoke_mlp_cpu --n_route 228 --epoch 1 --batch_size 8 --device cpu
+CUDA_VISIBLE_DEVICES=0 python main.py --model_name temporal_mlp --exp_name smoke_mlp_cpu --n_route 228 --epoch 20 --batch_size 8 --device cpu
 ```
 
 ### LSTM
 ```bash
-python main.py --model_name lstm --exp_name smoke_lstm_cpu --n_route 228 --epoch 1 --batch_size 8 --device cpu
+CUDA_VISIBLE_DEVICES=0 python main.py --model_name lstm --exp_name smoke_lstm_cpu --n_route 228 --epoch 20 --batch_size 8 --device cpu
 ```
 
 ---
@@ -159,6 +161,15 @@ python scripts/visualize_results.py \
   --device cpu
 ```
 
+python scripts/visualize_results.py \
+  --run_meta output/experiments/smoke_sage_cpu/graphsage/run_meta.json \
+  --history output/experiments/smoke_sage_cpu/graphsage/history.json \
+  --test_results output/experiments/smoke_sage_cpu/graphsage/test_results.json \
+  --checkpoint_dir output/experiments/smoke_sage_cpu/graphsage \
+  --output_dir output/visualizations/graphsage_cpu \
+  --device cpu
+
+
 ---
 
 ## 7. 多模型比较
@@ -173,7 +184,9 @@ python scripts/compare_model_runs.py \
   --run_dir output/experiments/smoke_stgcn_cpu/stgcn \
   --run_dir output/experiments/smoke_gat_cpu/gat \
   --run_dir output/experiments/smoke_sage_cpu/graphsage \
-  --labels stgcn gat graphsage \
+  --run_dir output/experiments/smoke_mlp_cpu/temporal_mlp \
+  --run_dir output/experiments/smoke_lstm_cpu/lstm \
+  --labels stgcn gat graphsage temporal_mlp lstm\
   --output_dir output/comparisons/cpu_artifact \
   --mode artifact-only \
   --device cpu
@@ -187,7 +200,9 @@ python scripts/compare_model_runs.py \
   --run_dir output/experiments/smoke_stgcn_cpu/stgcn \
   --run_dir output/experiments/smoke_gat_cpu/gat \
   --run_dir output/experiments/smoke_sage_cpu/graphsage \
-  --labels stgcn gat graphsage \
+  --run_dir output/experiments/smoke_mlp_cpu/temporal_mlp \
+  --run_dir output/experiments/smoke_lstm_cpu/lstm \
+  --labels stgcn gat graphsage temporal_mlp lstm\
   --output_dir output/comparisons/cpu_full \
   --mode full-prediction \
   --device cpu
@@ -200,7 +215,9 @@ python scripts/compare_model_runs.py \
   --run_dir output/experiments/smoke_stgcn_cpu/stgcn \
   --run_dir output/experiments/smoke_gat_cpu/gat \
   --run_dir output/experiments/smoke_sage_cpu/graphsage \
-  --labels stgcn gat graphsage \
+  --run_dir output/experiments/smoke_mlp_cpu/temporal_mlp \
+  --run_dir output/experiments/smoke_lstm_cpu/lstm \
+  --labels stgcn gat graphsage temporal_mlp lstm\
   --output_dir output/comparisons/cpu_full \
   --mode full-prediction \
   --baseline_label stgcn \
