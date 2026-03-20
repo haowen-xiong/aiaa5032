@@ -67,10 +67,7 @@ def data_gen(file_path, data_config, n_route, n_frame=21, day_slot=288):
     '''
     n_train, n_val, n_test = data_config
     # generate training, validation and test data
-    try:
-        data_seq = pd.read_csv(file_path, header=None).values
-    except FileNotFoundError:
-        print(f'ERROR: input file was not found in {file_path}.')
+    data_seq = pd.read_csv(file_path, header=None).values
 
     seq_train = seq_gen(n_train, data_seq, 0, n_frame, n_route, day_slot)
     seq_val = seq_gen(n_val, data_seq, n_train, n_frame, n_route, day_slot)

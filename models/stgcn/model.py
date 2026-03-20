@@ -31,6 +31,7 @@ class STGCN(nn.Module):
 
         specs = normalize_block_specs(block_specs if block_specs is not None else DEFAULT_BLOCK_SPECS)
         self.block_specs = specs
+        self.input_channels = specs[0][0]
         self.blocks = nn.ModuleList(
             [
                 STConvBlock(
@@ -63,6 +64,8 @@ class STGCN(nn.Module):
             self.output = OutputLayer(ko, self.n_route, last_channels, act_func=output_act_func)
 
     def forward(self, inputs):
+        if inputs.shape[-1] != self.input_channels:
+            raise ValueError(f"Expected {self.input_channels} input channels, got {inputs.shape[-1]}")
         x = inputs[:, 0 : self.n_his, :, :]
         for block in self.blocks:
             x = block(x)

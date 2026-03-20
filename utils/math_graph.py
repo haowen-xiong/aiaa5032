@@ -22,10 +22,8 @@ def scaled_laplacian(W):
     # L -> graph Laplacian
     L = -W
     L[np.diag_indices_from(L)] = d
-    for i in range(n):
-        for j in range(n):
-            if (d[i] > 0) and (d[j] > 0):
-                L[i, j] = L[i, j] / np.sqrt(d[i] * d[j])
+    d_inv_sqrt = np.where(d > 0, 1.0 / np.sqrt(d), 0.0)
+    L = L * d_inv_sqrt[:, None] * d_inv_sqrt[None, :]
     # lambda_max \approx 2.0, the largest eigenvalues of L.
     lambda_max = eigs(L, k=1, which='LR')[0][0].real
     return 2 * L / lambda_max - np.identity(n)
@@ -80,10 +78,7 @@ def weight_matrix(file_path, sigma2=0.1, epsilon=0.5, scaling=True):
     :param scaling: bool, whether applies numerical scaling on W.
     :return: np.ndarray, [n_route, n_route].
     '''
-    try:
-        W = pd.read_csv(file_path, header=None).values
-    except FileNotFoundError:
-        print(f'ERROR: input file was not found in {file_path}.')
+    W = pd.read_csv(file_path, header=None).values
 
     # check whether W is a 0/1 matrix.
     if set(np.unique(W)) == {0, 1}:

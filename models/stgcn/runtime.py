@@ -5,8 +5,8 @@ from models.stgcn.config import DEFAULT_BLOCK_SPECS
 from models.stgcn.model import build_stgcn
 
 
-def build_model(args, graph_kernel, device):
-    kernel = torch.as_tensor(graph_kernel, dtype=torch.float32, device=device)
+def build_model(args, graph_data, device):
+    kernel = torch.as_tensor(graph_data["stgcn_kernel"], dtype=torch.float32, device=device)
     return build_stgcn(
         n_his=args.n_his,
         Ks=args.ks,

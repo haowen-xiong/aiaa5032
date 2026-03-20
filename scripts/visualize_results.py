@@ -13,7 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from data_loader.data_utils import gen_batch
-from engine.data import build_graph_kernel, load_dataset
+from engine.data import build_graph_data, load_dataset
 from engine.experiment import resolve_checkpoint
 from engine.model_registry import get_model_runtime
 from utils.math_utils import MAE, MAPE, RMSE, z_inverse
@@ -46,11 +46,11 @@ def load_run_args(run_meta_path):
     return SimpleNamespace(**meta["args"])
 
 
-def load_model(args, graph_kernel, device, checkpoint_dir):
+def load_model(args, graph_data, device, checkpoint_dir):
     checkpoint_path = resolve_checkpoint(checkpoint_dir)
     checkpoint = torch.load(checkpoint_path, map_location=device)
     runtime = get_model_runtime(args.model_name)
-    model = runtime.build_fn(args, graph_kernel, device)
+    model = runtime.build_fn(args, graph_data, device)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
     return model, checkpoint_path
@@ -138,15 +138,14 @@ def plot_training_curves(history, best_epoch, out_dir):
 
 
 def plot_horizon_bars(test_results, out_dir):
-    horizons = ["15 min", "30 min", "45 min"]
     metrics = ["MAPE", "MAE", "RMSE"]
+    step_items = sorted(
+        test_results["test_metrics"].items(),
+        key=lambda item: int(item[0].split("_")[1]),
+    )
+    horizons = [f"{5 * int(step_key.split('_')[1])} min" for step_key, _ in step_items]
     values = {
-        metric: [
-            test_results["test_metrics"]["step_3"][metric] if idx == 0 else
-            test_results["test_metrics"]["step_6"][metric] if idx == 1 else
-            test_results["test_metrics"]["step_9"][metric]
-            for idx in range(3)
-        ]
+        metric: [step_metrics[metric] for _, step_metrics in step_items]
         for metric in metrics
     }
 
@@ -156,7 +155,7 @@ def plot_horizon_bars(test_results, out_dir):
         y = values[metric]
         if metric == "MAPE":
             y = [v * 100 for v in y]
-        ax.bar(horizons, y, color=colors)
+        ax.bar(horizons, y, color=[colors[i % len(colors)] for i in range(len(horizons))])
         ax.set_title(metric)
         ax.grid(axis="y", alpha=0.3)
         if metric == "MAPE":
@@ -184,14 +183,30 @@ def plot_rollout_curve(step_metrics, out_dir):
     plt.close(fig)
 
 
+def milestone_step_indices(n_pred):
+    indices = list(np.arange(3, n_pred + 1, 3) - 1)
+    if not indices:
+        return [n_pred - 1]
+    return indices
+
+
 def plot_sensor_forecast(targets, preds, sensor_idx, time_points, out_dir):
     time_points = min(time_points, targets.shape[1])
     x_axis = np.arange(time_points)
+    step_indices = milestone_step_indices(preds.shape[0])
+    colors = ["#0f766e", "#ca8a04", "#b91c1c"]
     fig, ax = plt.subplots(figsize=(12, 5))
-    ax.plot(x_axis, targets[0, :time_points, sensor_idx, 0], label="Ground Truth (15 min)", color="#111827", linewidth=2)
-    ax.plot(x_axis, preds[2, :time_points, sensor_idx, 0], label="Predicted (15 min)", color="#0f766e", linewidth=1.8)
-    ax.plot(x_axis, preds[5, :time_points, sensor_idx, 0], label="Predicted (30 min)", color="#ca8a04", linewidth=1.6)
-    ax.plot(x_axis, preds[8, :time_points, sensor_idx, 0], label="Predicted (45 min)", color="#b91c1c", linewidth=1.4)
+    first_step_minutes = 5 * (step_indices[0] + 1)
+    ax.plot(x_axis, targets[step_indices[0], :time_points, sensor_idx, 0], label=f"Ground Truth ({first_step_minutes} min)", color="#111827", linewidth=2)
+    for i, step_idx in enumerate(step_indices):
+        minutes = 5 * (step_idx + 1)
+        ax.plot(
+            x_axis,
+            preds[step_idx, :time_points, sensor_idx, 0],
+            label=f"Predicted ({minutes} min)",
+            color=colors[i % len(colors)],
+            linewidth=1.8,
+        )
     ax.set_title(f"Single-Sensor Forecast Trajectory (Sensor {sensor_idx})")
     ax.set_xlabel("Sliding Test Window Index")
     ax.set_ylabel("Speed")
@@ -205,12 +220,15 @@ def plot_sensor_forecast(targets, preds, sensor_idx, time_points, out_dir):
 def plot_error_heatmaps(targets, preds, heatmap_nodes, time_points, out_dir):
     time_points = min(time_points, targets.shape[1])
     heatmap_nodes = min(heatmap_nodes, targets.shape[2])
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    horizons = [(2, "15 min"), (5, "30 min"), (8, "45 min")]
-    for ax, (idx, title) in zip(axes, horizons):
-        error = np.abs(targets[idx, :time_points, :heatmap_nodes, 0] - preds[idx, :time_points, :heatmap_nodes, 0]).T
+    step_indices = milestone_step_indices(preds.shape[0])
+    fig, axes = plt.subplots(1, len(step_indices), figsize=(6 * len(step_indices), 5))
+    if len(step_indices) == 1:
+        axes = [axes]
+    for ax, step_idx in zip(axes, step_indices):
+        minutes = 5 * (step_idx + 1)
+        error = np.abs(targets[step_idx, :time_points, :heatmap_nodes, 0] - preds[step_idx, :time_points, :heatmap_nodes, 0]).T
         im = ax.imshow(error, aspect="auto", cmap="magma")
-        ax.set_title(title)
+        ax.set_title(f"{minutes} min")
         ax.set_xlabel("Sliding Test Window Index")
         ax.set_ylabel("Sensor Index")
         fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
@@ -240,9 +258,9 @@ def main():
     run_args.dataset_dir = cli_args.dataset_dir
     device = torch.device(cli_args.device)
 
-    graph_kernel, W = build_graph_kernel(run_args)
+    graph_data = build_graph_data(run_args) if get_model_runtime(run_args.model_name).supports_graph else None
     dataset = load_dataset(run_args)
-    model, checkpoint_path = load_model(run_args, graph_kernel, device, cli_args.checkpoint_dir)
+    model, checkpoint_path = load_model(run_args, graph_data, device, cli_args.checkpoint_dir)
 
     with open(cli_args.history, "r", encoding="utf-8") as f:
         history = json.load(f)
@@ -264,7 +282,8 @@ def main():
     plot_rollout_curve(step_metrics, out_dir)
     plot_sensor_forecast(targets, preds_real, sensor_idx, cli_args.time_points, out_dir)
     plot_error_heatmaps(targets, preds_real, cli_args.heatmap_nodes, cli_args.time_points, out_dir)
-    plot_adjacency_heatmap(W, out_dir)
+    if graph_data is not None:
+        plot_adjacency_heatmap(graph_data["raw_weight_matrix"], out_dir)
 
     print(f"Saved visualizations to {out_dir}")
 

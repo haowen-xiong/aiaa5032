@@ -34,6 +34,7 @@ def _register_builtin_models():
         return
     _load_runtime("models.stgcn.runtime")
     _load_runtime("models.baselines.runtime")
+    _load_runtime("models.graph_baselines.runtime")
 
 
 def get_model_runtime(model_name: str) -> ModelRuntime:

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 import random
 
@@ -14,10 +15,18 @@ class ExperimentPaths:
     tensorboard_dir: Path
 
 
-def build_experiment_paths(output_dir, exp_name, model_name):
+def build_experiment_paths(output_dir, exp_name, model_name, overwrite=False):
     output_root = Path(output_dir)
     experiment_root = output_root / exp_name
     model_root = experiment_root / model_name
+    if model_root.exists() and any(model_root.iterdir()) and not overwrite:
+        suffix = datetime.now().strftime("%y%m%d_%H%M%S")
+        experiment_root = output_root / f"{exp_name}_{suffix}"
+        model_root = experiment_root / model_name
+        print(
+            f"Warning: experiment directory {output_root / exp_name / model_name} already exists and is not empty; "
+            f"writing to {model_root} instead. Use --overwrite true to reuse the existing directory."
+        )
     tensorboard_dir = model_root / "tensorboard"
 
     for path in [output_root, experiment_root, model_root, tensorboard_dir]:

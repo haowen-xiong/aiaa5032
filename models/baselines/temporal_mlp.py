@@ -5,7 +5,7 @@ from typing import Iterable
 import torch
 import torch.nn as nn
 
-from .common import BaselineOutputConfig, flatten_spatiotemporal, reshape_node_outputs
+from .common import BaselineOutputConfig, flatten_spatiotemporal, reshape_node_outputs, validate_inputs
 
 
 class TemporalMLPBaseline(nn.Module):
@@ -35,11 +35,12 @@ class TemporalMLPBaseline(nn.Module):
         self.head = nn.Linear(in_dim, self.output_cfg.steps)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        flat, batch_size, num_nodes = flatten_spatiotemporal(inputs)
-        if flat.shape[-1] != self.time_steps * self.input_channels:
+        batch_size, time_steps, num_nodes, _ = validate_inputs(inputs, expected_channels=self.input_channels)
+        flat, _, _ = flatten_spatiotemporal(inputs)
+        if time_steps != self.time_steps:
             raise ValueError(
                 "TemporalMLPBaseline received incompatible input shape: "
-                f"expected T*C={self.time_steps * self.input_channels}, got {flat.shape[-1]}"
+                f"expected {self.time_steps} time steps, got {time_steps}"
             )
         hidden = self.backbone(flat)
         outputs = self.head(hidden)

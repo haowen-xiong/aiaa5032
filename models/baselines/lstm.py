@@ -37,11 +37,7 @@ class LSTMBaseline(nn.Module):
         self.head = nn.Linear(self.hidden_size * directions, self.output_cfg.steps)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        batch_size, time_steps, num_nodes, channels = validate_inputs(inputs)
-        if channels != self.input_channels:
-            raise ValueError(
-                f"LSTMBaseline expected input_channels={self.input_channels}, got {channels}"
-            )
+        batch_size, time_steps, num_nodes, channels = validate_inputs(inputs, expected_channels=self.input_channels)
 
         seq = inputs.permute(0, 2, 1, 3).reshape(batch_size * num_nodes, time_steps, channels)
         _, (hidden_state, _) = self.lstm(seq)

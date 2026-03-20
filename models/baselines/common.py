@@ -17,10 +17,13 @@ class BaselineOutputConfig:
         return 1
 
 
-def validate_inputs(inputs: torch.Tensor) -> tuple[int, int, int, int]:
+def validate_inputs(inputs: torch.Tensor, expected_channels: int | None = None) -> tuple[int, int, int, int]:
     if inputs.ndim != 4:
         raise ValueError(f"Expected inputs with shape [B, T, N, C], got {tuple(inputs.shape)}")
-    return tuple(int(v) for v in inputs.shape)
+    shape = tuple(int(v) for v in inputs.shape)
+    if expected_channels is not None and shape[-1] != expected_channels:
+        raise ValueError(f"Expected {expected_channels} input channels, got {shape[-1]}")
+    return shape
 
 
 def flatten_spatiotemporal(inputs: torch.Tensor) -> tuple[torch.Tensor, int, int]:
@@ -40,4 +43,5 @@ def extract_last_value(inputs: torch.Tensor, feature_index: int = -1) -> torch.T
     last_frame = inputs[:, -1, :, :]
     if last_frame.shape[-1] == 1:
         return last_frame
-    return last_frame[..., feature_index : feature_index + 1]
+    idx = feature_index % last_frame.shape[-1]
+    return last_frame[..., idx : idx + 1]

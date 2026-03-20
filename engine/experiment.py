@@ -134,10 +134,8 @@ def train_and_test_model(model, dataset, args, device, save_dir):
     if args.inf_mode == "sep":
         step_idx = args.n_pred - 1
         tmp_idx = [step_idx]
-        min_val = min_va_val = np.array([4e1, 1e5, 1e5], dtype=np.float64)
     elif args.inf_mode == "merge":
         step_idx = tmp_idx = np.arange(3, args.n_pred + 1, 3) - 1
-        min_val = min_va_val = np.array([4e1, 1e5, 1e5] * len(step_idx), dtype=np.float64)
     else:
         raise ValueError(f'ERROR: test mode "{args.inf_mode}" is not defined.')
 
@@ -189,14 +187,11 @@ def train_and_test_model(model, dataset, args, device, save_dir):
 
         start_time = time.time()
         evl_val = evaluate_split(model, dataset.get_data("val"), x_stats, args.batch_size, args, device, step_idx)
-        chks = evl_val < min_va_val
-        if np.sum(chks):
-            min_va_val[chks] = evl_val[chks]
-            min_val = evaluate_split(model, dataset.get_data("test"), x_stats, args.batch_size, args, device, step_idx)
+        evl_test = evaluate_split(model, dataset.get_data("test"), x_stats, args.batch_size, args, device, step_idx)
         infer_time = time.time() - start_time
 
         for ix in tmp_idx:
-            va, te = min_va_val[ix - 2:ix + 1], min_val[ix - 2:ix + 1]
+            va, te = evl_val[ix - 2:ix + 1], evl_test[ix - 2:ix + 1]
             log_message(
                 f"Time Step {ix + 1}: MAPE {va[0]:7.3%}, {te[0]:7.3%}; MAE  {va[1]:4.3f}, {te[1]:4.3f}; RMSE {va[2]:6.3f}, {te[2]:6.3f}.",
                 log_file,
@@ -209,12 +204,12 @@ def train_and_test_model(model, dataset, args, device, save_dir):
                 "learning_rate": optimizer.param_groups[0]["lr"] if optimizer is not None else 0.0,
                 "train_time_sec": train_time,
                 "infer_time_sec": infer_time,
-                "val_metrics": min_va_val.tolist(),
-                "test_metrics": min_val.tolist(),
+                "val_metrics": evl_val.tolist(),
+                "test_metrics": evl_test.tolist(),
             }
         )
 
-        current_val_score = summarize_metric(min_va_val, metric_name="mae")
+        current_val_score = summarize_metric(evl_val, metric_name="mae")
         if current_val_score < best_val_score:
             best_val_score = current_val_score
             best_epoch = i + 1

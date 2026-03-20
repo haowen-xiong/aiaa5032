@@ -7,11 +7,11 @@ def parse_hidden_dims(hidden_dims: str):
     return tuple(int(v) for v in values) if values else (128, 64)
 
 
-def build_persistence(args, graph_kernel, device):
+def build_persistence(args, graph_data, device):
     return build_baseline("persistence", n_pred=args.n_pred, direct_multi_step=args.direct_multi_step).to(device)
 
 
-def build_temporal_mlp(args, graph_kernel, device):
+def build_temporal_mlp(args, graph_data, device):
     return build_baseline(
         "temporal_mlp",
         time_steps=args.n_his,
@@ -22,7 +22,7 @@ def build_temporal_mlp(args, graph_kernel, device):
     ).to(device)
 
 
-def build_lstm(args, graph_kernel, device):
+def build_lstm(args, graph_data, device):
     return build_baseline(
         "lstm",
         hidden_size=args.hidden_size,
